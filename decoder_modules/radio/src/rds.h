@@ -314,6 +314,10 @@ namespace rds {
         bool rtAB = false;
         std::string radioText = "                                                                ";
 
+        // Group type 4
+        std::mutex group4Mtx;
+        std::chrono::time_point<std::chrono::high_resolution_clock> group4LastUpdate{};  // 1970-01-01
+
         // Group type 10
         std::mutex group10Mtx;
         std::chrono::time_point<std::chrono::high_resolution_clock> group10LastUpdate{};  // 1970-01-01

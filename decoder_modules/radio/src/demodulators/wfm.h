@@ -396,8 +396,7 @@ namespace demod {
                             {0.0f, 15000.0f, "MONO", IM_COL32(255, 255, 100, 15), IM_COL32(255, 255, 100, 255), false},      // 0-15 kHz mono - very subtle
                             {23000.0f, 53000.0f, "STEREO", IM_COL32(80, 255, 80, 15), IM_COL32(120, 255, 120, 255), false}, // 23-53 kHz L-R signal - very subtle
                             {55000.0f, 59000.0f, "RDS", IM_COL32(255, 120, 255, 20), IM_COL32(255, 160, 255, 255), false},  // 55-59 kHz RDS - very subtle
-                            {65000.0f, 70000.0f, "SCA1", IM_COL32(120, 180, 255, 20), IM_COL32(160, 200, 255, 255), false}, // 65-70 kHz SCA1 - very subtle
-                            {90000.0f, 94000.0f, "SCA2", IM_COL32(255, 200, 120, 20), IM_COL32(255, 220, 160, 255), false}  // 90-94 kHz SCA2 - very subtle
+                            {60000.0f, 74000.0f, "SCA", IM_COL32(120, 180, 255, 20), IM_COL32(160, 200, 255, 255), false}, // 65-70 kHz SCA1 - very subtle
                         };
                         
                         // Draw frequency bands first
@@ -594,7 +593,7 @@ namespace demod {
                     ImGui::SameLine(); ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.5f, 1.0f), "PILOT"); ImGui::SameLine(); ImGui::Text("(19k) |");
                     ImGui::SameLine(); ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "STEREO"); ImGui::SameLine(); ImGui::Text("(38k) |");
                     ImGui::SameLine(); ImGui::TextColored(ImVec4(1.0f, 0.6f, 1.0f, 1.0f), "RDS"); ImGui::SameLine(); ImGui::Text("(57k) |");
-                    ImGui::SameLine(); ImGui::TextColored(ImVec4(0.6f, 0.8f, 1.0f, 1.0f), "SCA"); ImGui::SameLine(); ImGui::Text("(67.65k, 92k)");
+                    ImGui::SameLine(); ImGui::TextColored(ImVec4(0.6f, 0.8f, 1.0f, 1.0f), "SCA"); ImGui::SameLine(); ImGui::Text("(67k, 92k)");
                 } else {
                     ImGui::Text("Initializing FFT for spectrum analysis...");
                 }
