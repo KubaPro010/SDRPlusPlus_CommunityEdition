@@ -389,14 +389,16 @@ namespace demod {
                             const char* label;
                             ImU32 fillColor;
                             ImU32 textColor;
-                            bool isLine; // true for pilot tone, false for bands
+                            bool addLine;
                         };
                         
                         std::vector<MPXBand> mpxBands = {
-                            {0.0f, 15000.0f, "MONO", IM_COL32(255, 255, 100, 15), IM_COL32(255, 255, 100, 255), false},      // 0-15 kHz mono - very subtle
-                            {23000.0f, 53000.0f, "STEREO", IM_COL32(80, 255, 80, 15), IM_COL32(120, 255, 120, 255), false}, // 23-53 kHz L-R signal - very subtle
-                            {55000.0f, 59000.0f, "RDS", IM_COL32(255, 120, 255, 20), IM_COL32(255, 160, 255, 255), false},  // 55-59 kHz RDS - very subtle
+                            {0.0f, 15000.0f, "MONO", IM_COL32(255, 255, 100, 15), IM_COL32(255, 255, 100, 255), false},      // 0-15 kHz mono, SSB signal
+                            {19000.0f, 19000.0f, "PILOT", IM_COL32(255, 60, 60, 255), IM_COL32(255, 60, 60, 255), true}, // 23-53 kHz L-R signal, DSB Signal
+                            {23000.0f, 53000.0f, "STEREO", IM_COL32(80, 255, 80, 15), IM_COL32(120, 255, 120, 255), true}, // 23-53 kHz L-R signal, DSB Signal
+                            {55000.0f, 59000.0f, "RDS", IM_COL32(255, 120, 255, 20), IM_COL32(255, 160, 255, 255), true},  // 55-59 kHz RDS, Also DSB signal
                             {60000.0f, 74000.0f, "SCA", IM_COL32(120, 180, 255, 20), IM_COL32(160, 200, 255, 255), false}, // 65-70 kHz SCA1 - very subtle
+                            {76000.0f, 76000.0f, "PILOTx3", IM_COL32(255, 60, 60, 255), IM_COL32(255, 60, 60, 255), true},
                         };
                         
                         // Draw frequency bands first
@@ -423,6 +425,10 @@ namespace demod {
                             // Convert bins to pixel positions
                             float x1 = canvas_pos.x + ((float)startBin / maxBin) * canvas_size.x;
                             float x2 = canvas_pos.x + ((float)endBin / maxBin) * canvas_size.x;
+                            float x3 = canvas_pos.x + (((float)startBin / maxBin) + ((float)endBin / maxBin)) * canvas_size.x / 2;
+
+                            ImVec2 textSize = ImGui::CalcTextSize(band.label);
+                            if(band.addLine) drawList->AddLine(ImVec2(x3, canvas_pos.y + textSize.y), ImVec2(x3, canvas_pos.y + canvas_size.y), band.textColor, 3.0f);
                             
                             // Ensure band is visible and within bounds
                             if (x2 > canvas_pos.x && x1 < canvas_pos.x + canvas_size.x) {
@@ -438,16 +444,9 @@ namespace demod {
                                 drawList->AddRect(bandMin, bandMax, band.textColor, 0.0f, 0, 1.0f);
                                 
                                 // Label in center of band
-                                ImVec2 textSize = ImGui::CalcTextSize(band.label);
                                 float centerX = (x1 + x2) / 2.0f;
                                 float textX = centerX - textSize.x/2;
                                 float textY = canvas_pos.y + 5;
-                                
-                                // Ensure text stays within band and canvas bounds
-                                if (textX < x1 + 2) textX = x1 + 2;
-                                if (textX + textSize.x > x2 - 2) textX = x2 - textSize.x - 2;
-                                if (textX < canvas_pos.x + 2) textX = canvas_pos.x + 2;
-                                if (textX + textSize.x > canvas_pos.x + canvas_size.x - 2) textX = canvas_pos.x + canvas_size.x - textSize.x - 2;
                                 
                                 // Background for readability
                                 ImVec2 bgMin = ImVec2(textX - 3, textY - 1);
@@ -455,40 +454,6 @@ namespace demod {
                                 drawList->AddRectFilled(bgMin, bgMax, IM_COL32(0, 0, 0, 180), 3.0f);
                                 drawList->AddText(ImVec2(textX, textY), band.textColor, band.label);
                             }
-                        }
-                        
-                        // Draw 19 kHz pilot tone line on top of everything for maximum visibility
-                        float pilotFreq = 19000.0f;
-                        
-                        // Find the pilot frequency bin in the actual spectrum data
-                        int pilotBin = -1;
-                        for (int i = 0; i < maxBin; i++) {
-                            if (frequencyAxis[i] >= pilotFreq) {
-                                pilotBin = i;
-                                break;
-                            }
-                        }
-                        
-                        if (pilotBin >= 0 && pilotBin < maxBin) {
-                            float pilotX = canvas_pos.x + ((float)pilotBin / maxBin) * canvas_size.x;
-                            // Draw bright, thick pilot line
-                            drawList->AddLine(ImVec2(pilotX, canvas_pos.y), ImVec2(pilotX, canvas_pos.y + canvas_size.y), IM_COL32(255, 60, 60, 255), 3.0f);
-                            
-                            // Add pilot label
-                            ImVec2 textSize = ImGui::CalcTextSize("PILOT");
-                            float textX = pilotX - textSize.x/2;
-                            float textY = canvas_pos.y + 25; // Offset slightly from other labels
-                            
-                            // Ensure text stays within bounds
-                            if (textX < canvas_pos.x + 2) textX = canvas_pos.x + 2;
-                            if (textX + textSize.x > canvas_pos.x + canvas_size.x - 2) textX = canvas_pos.x + canvas_size.x - textSize.x - 2;
-                            
-                            // Prominent background for pilot label
-                            ImVec2 bgMin = ImVec2(textX - 4, textY - 2);
-                            ImVec2 bgMax = ImVec2(textX + textSize.x + 4, textY + textSize.y + 2);
-                            drawList->AddRectFilled(bgMin, bgMax, IM_COL32(0, 0, 0, 200), 3.0f);
-                            drawList->AddRect(bgMin, bgMax, IM_COL32(255, 60, 60, 255), 3.0f, 0, 2.0f);
-                            drawList->AddText(ImVec2(textX, textY), IM_COL32(255, 120, 120, 255), "PILOT");
                         }
                         
                         // Modern frequency axis with grid lines and enhanced labels using actual frequency range
