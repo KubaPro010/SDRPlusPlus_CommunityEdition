@@ -332,8 +332,9 @@ namespace rds {
         rtAB = nAB;
 
         // Write char at offset in Radiotext
+        uint8_t rtOffset;
         if (groupVer == GROUP_VER_A) {
-            uint8_t rtOffset = offset * 4;
+            rtOffset = offset * 4;
             if (blockAvail[BLOCK_TYPE_C]) {
                 radioText[rtOffset] = (blocks[BLOCK_TYPE_C] >> 18) & 0xFF;
                 radioText[rtOffset + 1] = (blocks[BLOCK_TYPE_C] >> 10) & 0xFF;
@@ -344,10 +345,25 @@ namespace rds {
             }
         }
         else {
-            uint8_t rtOffset = offset * 2;
+            rtOffset = offset * 2;
             if (blockAvail[BLOCK_TYPE_D]) {
                 radioText[rtOffset] = (blocks[BLOCK_TYPE_D] >> 18) & 0xFF;
                 radioText[rtOffset + 1] = (blocks[BLOCK_TYPE_D] >> 10) & 0xFF;
+            }
+        }
+
+        // RT has a mechanism that \r means the end of the message, so if this group contains such thing, just clear out anything after
+        int carriage = -1;  // use -1 for "not found"
+        for (int i = 0; i < 2 + ((groupVer == GROUP_VER_A) * 2); i++) {
+            if (radioText[rtOffset + i] == '\r') {
+                carriage = i;
+                break;
+            }
+        }
+
+        if (carriage >= 0) {
+            for (int i = rtOffset + carriage; i < 64; i++) {
+                radioText[i] = ' ';
             }
         }
 

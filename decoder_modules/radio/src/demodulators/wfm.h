@@ -777,14 +777,16 @@ namespace demod {
 
             // Generate string depending on RDS mode
             char buf[256];
-            std::string ps, rt, lps;
+            std::string ps, rt, lps, ptyn;
             if(_this->rdsDecode.PSNameValid()) ps = _this->rdsDecode.getPSName();
             else ps = "-";
             if(_this->rdsDecode.LongPSNameValid()) lps = _this->rdsDecode.getLongPSName();
             else lps = "-";
             if(_this->rdsDecode.radioTextValid()) rt = _this->rdsDecode.getRadioText();
             else rt = "-";
-            sprintf(buf, "RDS:\n\tPS:\t%s\n\tLPS:\t%s\n\tRT:\t%s", ps.c_str(), lps.c_str(), rt.c_str());
+            if(_this->rdsDecode.programTypeNameValid()) ptyn = _this->rdsDecode.getProgramTypeName();
+            else ptyn = "-";
+            sprintf(buf, "RDS:\n\tPS:\t%s\n\tLPS:\t%s\n\tRT:\t%s\n\tPTYN:\t%s", ps.c_str(), lps.c_str(), rt.c_str(), ptyn.c_str());
 
             // Calculate paddings
             ImVec2 min = args.min;
