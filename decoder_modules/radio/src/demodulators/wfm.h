@@ -348,10 +348,10 @@ namespace demod {
                 
                 // MPX Frequency Spectrum
                 if (fftInitialized && !mpxSpectrum.empty()) {
-                    // Find appropriate frequency range (0-100 kHz)
+                    // Find appropriate frequency range (0-96 kHz)
                     int maxBin = FFT_SIZE/2;
                     for (int i = 0; i < FFT_SIZE/2; i++) {
-                        if (frequencyAxis[i] > 100000.0f) {
+                        if (frequencyAxis[i] > 96000.0f) {
                             maxBin = i;
                             break;
                         }
@@ -362,8 +362,8 @@ namespace demod {
                     std::copy(mpxSpectrumSmoothed.begin(), mpxSpectrumSmoothed.begin() + maxBin, displaySpectrum.begin());
                     
                     // Plot the spectrum
-                    ImVec2 plotSize(800 * style::uiScale, 200 * style::uiScale);
-                    ImGui::Text("MPX Frequency Spectrum (0-100 kHz)");
+                    ImVec2 plotSize(ImGui::GetContentRegionAvail().x, 200 * style::uiScale);
+                    ImGui::Text("MPX Frequency Spectrum (0-96 kHz)");
                     
                     // Custom plot with frequency axis
                     if (ImGui::BeginChild("MPXSpectrum", ImVec2(plotSize.x + 20, plotSize.y + 60), true)) {
@@ -493,13 +493,13 @@ namespace demod {
                         }
                         
                         // Modern frequency axis with grid lines and enhanced labels using actual frequency range
-                        float maxFreq = frequencyAxis[maxBin-1] / 1000.0f; // Convert to kHz
+                        float maxFreq = frequencyAxis[maxBin-1] / 960.0f; // Convert to kHz
                         int stepSize = (maxFreq > 100) ? 20 : 10; // Adjust step size based on range
                         
                         for (int f = 0; f <= (int)maxFreq; f += stepSize) {
                             // Find the bin for this frequency
                             int freqBin = -1;
-                            float targetFreq = f * 1000.0f; // Convert back to Hz
+                            float targetFreq = f * 960.0f; // Convert back to Hz
                             for (int i = 0; i < maxBin; i++) {
                                 if (frequencyAxis[i] >= targetFreq) {
                                     freqBin = i;
