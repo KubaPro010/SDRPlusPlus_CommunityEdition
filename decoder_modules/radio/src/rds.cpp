@@ -269,7 +269,6 @@ namespace rds {
 
         // Decode Block B data
         trafficAnnouncement = (blocks[BLOCK_TYPE_B] >> 14) & 1;
-        music = (blocks[BLOCK_TYPE_B] >> 13) & 1;
         uint8_t diBit = (blocks[BLOCK_TYPE_B] >> 12) & 1;
         uint8_t offset = ((blocks[BLOCK_TYPE_B] >> 10) & 0b11);
         uint8_t diOffset = 3 - offset;
@@ -292,6 +291,30 @@ namespace rds {
 
         // Update timeout
         group0LastUpdate = std::chrono::high_resolution_clock::now();
+    }
+
+    void Decoder::decodeGroup1() {
+        // Simple group, block B's 5 bits are RFU, as well as block D
+        if(!blockAvail[BLOCK_TYPE_C]) return;
+
+        std::lock_guard<std::mutex> lck(group1Mtx);
+
+        linkage_actuator = (blocks[BLOCK_TYPE_C] >> 25) & 1; // Grab the MSB, remember that we have the 10-bit CRC/offset which is useless
+        uint8_t variant_code = (blocks[BLOCK_TYPE_C] >> 22) & 7; // What crap we have here
+
+        switch (variant_code)
+        {
+        case 0:
+            // ECC
+            extendedCountryCode = ((blocks[BLOCK_TYPE_C] >> 10) & 0xfff); // 12 bit code
+            break;
+        default:
+            // we have ews id and broadcaster use and both aren't defined to what they contain other than "ews id" or "broadcaster use"
+            break;
+        }
+
+        // Update timeout
+        group1LastUpdate = std::chrono::high_resolution_clock::now();
     }
 
     void Decoder::decodeGroup2() {
@@ -372,6 +395,27 @@ namespace rds {
         group10LastUpdate = std::chrono::high_resolution_clock::now();
     }
 
+    void Decoder::decodeGroup15() {
+        // Acquire lock
+        std::lock_guard<std::mutex> lck(group15Mtx);
+
+        // Get char offset and write chars in the LPS
+        uint8_t offset = (blocks[BLOCK_TYPE_B] >> 10) & 7; // 3 bits
+
+        uint8_t charOffset = offset * 4;
+        if (blockAvail[BLOCK_TYPE_C]) {
+            longProgramServiceName[charOffset] = (blocks[BLOCK_TYPE_C] >> 18) & 0xFF;
+            longProgramServiceName[charOffset + 1] = (blocks[BLOCK_TYPE_C] >> 10) & 0xFF;
+        }
+        if (blockAvail[BLOCK_TYPE_D]) {
+            longProgramServiceName[charOffset + 2] = (blocks[BLOCK_TYPE_D] >> 18) & 0xFF;
+            longProgramServiceName[charOffset + 3] = (blocks[BLOCK_TYPE_D] >> 10) & 0xFF;
+        }
+
+        // Update timeout
+        group15LastUpdate = std::chrono::high_resolution_clock::now();
+    }
+
     void Decoder::decodeGroup() {
         // Make sure blocks B is available
         if (!blockAvail[BLOCK_TYPE_B]) { return; }
@@ -382,13 +426,22 @@ namespace rds {
         // Decode depending on group type
         switch (groupType) {
         case 0:
+            // 0A and 0B relay similiar information, only diffrence is one doesn't have AF
             decodeGroup0();
+            break;
+        case 1:
+            if(groupVer == GROUP_VER_A) decodeGroup1(); // 1A
+            // 1B is used for ODA
             break;
         case 2:
             decodeGroup2();
             break;
         case 10:
             decodeGroup10();
+            break;
+        case 15:
+            if(groupVer == GROUP_VER_A) decodeGroup15(); // 15A
+            // 15B is for something else TODO: something else
             break;
         default:
             break;
@@ -477,6 +530,11 @@ namespace rds {
         return (std::chrono::duration_cast<std::chrono::milliseconds>(now - group0LastUpdate)).count() < RDS_GROUP_0_TIMEOUT_MS;
     }
 
+    bool Decoder::group1Valid() {
+        auto now = std::chrono::high_resolution_clock::now();
+        return (std::chrono::duration_cast<std::chrono::milliseconds>(now - group1LastUpdate)).count() < RDS_GROUP_1_TIMEOUT_MS;
+    }
+
     bool Decoder::group2Valid() {
         auto now = std::chrono::high_resolution_clock::now();
         return (std::chrono::duration_cast<std::chrono::milliseconds>(now - group2LastUpdate)).count() < RDS_GROUP_2_TIMEOUT_MS;
@@ -485,5 +543,10 @@ namespace rds {
     bool Decoder::group10Valid() {
         auto now = std::chrono::high_resolution_clock::now();
         return (std::chrono::duration_cast<std::chrono::milliseconds>(now - group10LastUpdate)).count() < RDS_GROUP_10_TIMEOUT_MS;
+    }
+
+    bool Decoder::group15Valid() {
+        auto now = std::chrono::high_resolution_clock::now();
+        return (std::chrono::duration_cast<std::chrono::milliseconds>(now - group15LastUpdate)).count() < RDS_GROUP_15_TIMEOUT_MS;
     }
 }

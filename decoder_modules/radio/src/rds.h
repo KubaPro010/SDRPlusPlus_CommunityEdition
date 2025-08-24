@@ -7,8 +7,10 @@
 #define RDS_BLOCK_A_TIMEOUT_MS  5000.0
 #define RDS_BLOCK_B_TIMEOUT_MS  5000.0
 #define RDS_GROUP_0_TIMEOUT_MS  5000.0
+#define RDS_GROUP_1_TIMEOUT_MS  10000.0
 #define RDS_GROUP_2_TIMEOUT_MS  5000.0
 #define RDS_GROUP_10_TIMEOUT_MS 5000.0
+#define RDS_GROUP_15_TIMEOUT_MS 5000.0
 
 namespace rds {
     enum BlockType {
@@ -220,18 +222,24 @@ namespace rds {
         uint8_t getCountryCode() { std::lock_guard<std::mutex> lck(blockAMtx); return countryCode; }
         uint8_t getProgramCoverage() { std::lock_guard<std::mutex> lck(blockAMtx); return programCoverage; }
         uint8_t getProgramRefNumber() { std::lock_guard<std::mutex> lck(blockAMtx); return programRefNumber; }
+        bool getTrafficProgram() { std::lock_guard<std::mutex> lck(blockAMtx); return trafficProgram; }
         std::string getCallsign() { std::lock_guard<std::mutex> lck(blockAMtx); return callsign; }
         
         bool programTypeValid() { std::lock_guard<std::mutex> lck(blockBMtx); return blockBValid(); }
         ProgramType getProgramType() { std::lock_guard<std::mutex> lck(blockBMtx); return programType; }
 
-        bool musicValid() { std::lock_guard<std::mutex> lck(group0Mtx); return group0Valid(); }
-        bool getMusic() { std::lock_guard<std::mutex> lck(group0Mtx); return music; }
         bool PSNameValid() { std::lock_guard<std::mutex> lck(group0Mtx); return group0Valid(); }
+        bool getTrafficAnnouncement() { std::lock_guard<std::mutex> lck(blockAMtx); return trafficAnnouncement; }
         std::string getPSName() { std::lock_guard<std::mutex> lck(group0Mtx); return programServiceName; }
+
+        bool slcValid() { std::lock_guard<std::mutex> lck(group1Mtx); return group1Valid(); }
+        uint16_t getExtendedCountryCode() { std::lock_guard<std::mutex> lck(group1Mtx); return extendedCountryCode; }
 
         bool radioTextValid() { std::lock_guard<std::mutex> lck(group2Mtx); return group2Valid(); }
         std::string getRadioText() { std::lock_guard<std::mutex> lck(group2Mtx); return radioText; }
+
+        bool LongPSNameValid() { std::lock_guard<std::mutex> lck(group15Mtx); return group15Valid(); }
+        std::string getLongPSName() { std::lock_guard<std::mutex> lck(group15Mtx); return longProgramServiceName; }
 
         bool programTypeNameValid() { std::lock_guard<std::mutex> lck(group10Mtx); return group10Valid(); }
         std::string getProgramTypeName() { std::lock_guard<std::mutex> lck(group10Mtx); return programTypeName; }
@@ -242,8 +250,10 @@ namespace rds {
         void decodeBlockA();
         void decodeBlockB();
         void decodeGroup0();
+        void decodeGroup1();
         void decodeGroup2();
         void decodeGroup10();
+        void decodeGroup15();
         void decodeGroup();
 
         static std::string base26ToCall(uint16_t pi);
@@ -252,8 +262,10 @@ namespace rds {
         bool blockAValid();
         bool blockBValid();
         bool group0Valid();
+        bool group1Valid();
         bool group2Valid();
         bool group10Valid();
+        bool group15Valid();
 
         // State machine
         uint32_t shiftReg = 0;
@@ -285,10 +297,16 @@ namespace rds {
         std::mutex group0Mtx;
         std::chrono::time_point<std::chrono::high_resolution_clock> group0LastUpdate{};  // 1970-01-01
         bool trafficAnnouncement;
-        bool music;
+        // ms bit was removed in the latest standard
         uint8_t decoderIdent;
         uint16_t alternateFrequency;
         std::string programServiceName = "        ";
+        
+        // Group type 1
+        std::mutex group1Mtx;
+        std::chrono::time_point<std::chrono::high_resolution_clock> group1LastUpdate{};  // 1970-01-01
+        bool linkage_actuator;
+        uint16_t extendedCountryCode;
 
         // Group type 2
         std::mutex group2Mtx;
@@ -302,5 +320,9 @@ namespace rds {
         bool ptnAB = false;
         std::string programTypeName = "        ";
 
+        // Group type 15
+        std::mutex group15Mtx;
+        std::chrono::time_point<std::chrono::high_resolution_clock> group15LastUpdate{};  // 1970-01-01
+        std::string longProgramServiceName = "                                ";
     };
 }

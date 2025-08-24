@@ -1,4 +1,5 @@
 #pragma once
+#include <gui/style.h>
 #include "../demod.h"
 #include <dsp/demod/broadcast_fm.h>
 #include "../rds_demod.h"
@@ -222,6 +223,18 @@ namespace demod {
                     ImGui::TextUnformatted("Reference Number");
                     ImGui::TableSetColumnIndex(1);
                     ImGui::Text("%d", rdsDecode.getProgramRefNumber());
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("TP TA");
+                    ImGui::TableSetColumnIndex(1);
+                    if(rdsDecode.PSNameValid()) {
+                        // We have both TP and TA (TP is send in every group while TA is just 0)
+                        ImGui::Text("%s %s", rdsDecode.getTrafficProgram() ? "TP" : "--", rdsDecode.getTrafficAnnouncement() ? "TA" : "--");
+                    } else {
+                        // No good TA
+                        ImGui::Text("%s ??", rdsDecode.getTrafficProgram() ? "TP" : "--");
+                    }
                 }
                 else {
                     ImGui::TableNextRow();
@@ -252,6 +265,12 @@ namespace demod {
                     ImGui::TextUnformatted("Reference Number");
                     ImGui::TableSetColumnIndex(1);
                     ImGui::TextUnformatted("--");
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("TP TA");
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::TextUnformatted("--");
                 }
 
                 if (rdsDecode.programTypeValid()) {
@@ -274,19 +293,19 @@ namespace demod {
                     ImGui::TextUnformatted("------- (--)");  // TODO: String
                 }
 
-                if (rdsDecode.musicValid()) {
+                if (rdsDecode.slcValid()) {
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
-                    ImGui::TextUnformatted("Music");
+                    ImGui::TextUnformatted("Extended Country Code");
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%s", rdsDecode.getMusic() ? "Yes":"No");
+                    ImGui::Text("0x%X", rdsDecode.getExtendedCountryCode());
                 }
                 else {
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
-                    ImGui::TextUnformatted("Music");
+                    ImGui::TextUnformatted("Extended Country Code");
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::TextUnformatted("---");
+                    ImGui::TextUnformatted("-----");
                 }
 
                 ImGui::EndTable();
@@ -343,14 +362,14 @@ namespace demod {
                     std::copy(mpxSpectrumSmoothed.begin(), mpxSpectrumSmoothed.begin() + maxBin, displaySpectrum.begin());
                     
                     // Plot the spectrum
-                    ImVec2 plotSize(800, 200);
+                    ImVec2 plotSize(800 * style::uiScale, 200 * style::uiScale);
                     ImGui::Text("MPX Frequency Spectrum (0-100 kHz)");
                     
                     // Custom plot with frequency axis
                     if (ImGui::BeginChild("MPXSpectrum", ImVec2(plotSize.x + 20, plotSize.y + 60), true)) {
                         ImDrawList* drawList = ImGui::GetWindowDrawList();
                         ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
-                        ImVec2 canvas_size = ImVec2(plotSize.x, plotSize.y);
+                        ImVec2 canvas_size = ImVec2(plotSize.x, plotSize.y - 15); // k201: the -15 makes the funny scroll bar go away
                         
                         // Draw background
                         drawList->AddRectFilled(canvas_pos, ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y), IM_COL32(20, 20, 20, 255));
@@ -546,7 +565,7 @@ namespace demod {
                     ImGui::Text("Stereo Channel Analysis");
                     
                     // Use same width as MPX spectrum for consistency
-                    ImVec2 timeGraphSize(plotSize.x, 60);
+                    ImVec2 timeGraphSize(plotSize.x * style::uiScale, 60 * style::uiScale);
                     
                     ImGui::Text("L+R (Mono Signal)");
                     if (!lPlusR.empty()) {
@@ -758,18 +777,14 @@ namespace demod {
 
             // Generate string depending on RDS mode
             char buf[256];
-            if (_this->rdsDecode.PSNameValid() && _this->rdsDecode.radioTextValid()) {
-                sprintf(buf, "RDS: %s - %s", _this->rdsDecode.getPSName().c_str(), _this->rdsDecode.getRadioText().c_str());
-            }
-            else if (_this->rdsDecode.PSNameValid()) {
-                sprintf(buf, "RDS: %s", _this->rdsDecode.getPSName().c_str());
-            }
-            else if (_this->rdsDecode.radioTextValid()) {
-                sprintf(buf, "RDS: %s", _this->rdsDecode.getRadioText().c_str());
-            }
-            else {
-                return;
-            }
+            std::string ps, rt, lps;
+            if(_this->rdsDecode.PSNameValid()) ps = _this->rdsDecode.getPSName();
+            else ps = "-";
+            if(_this->rdsDecode.LongPSNameValid()) lps = _this->rdsDecode.getLongPSName();
+            else lps = "-";
+            if(_this->rdsDecode.radioTextValid()) rt = _this->rdsDecode.getRadioText();
+            else rt = "-";
+            sprintf(buf, "RDS:\n\tPS:\t%s\n\tLPS:\t%s\n\tRT:\t%s", ps.c_str(), lps.c_str(), rt.c_str());
 
             // Calculate paddings
             ImVec2 min = args.min;
@@ -789,7 +804,7 @@ namespace demod {
             args.window->DrawList->AddRectFilled(min, max, IM_COL32(0, 0, 0, 128));
 
             // Draw text
-            args.window->DrawList->AddText(tmin, IM_COL32(255, 255, 0, 255), buf);
+            args.window->DrawList->AddText(tmin, IM_COL32(255, 255, 255, 255), buf);
         }
 
         dsp::demod::BroadcastFM demod;
