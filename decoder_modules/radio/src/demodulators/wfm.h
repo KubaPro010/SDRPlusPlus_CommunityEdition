@@ -710,7 +710,7 @@ namespace demod {
                 float sample = data[startIdx + i];
                 mpxOscilloscope[i] = sample;
 
-                bs412_sample_holder += sample * sample * _bandwidth * _bandwidth;
+                bs412_sample_holder += sample * sample * (_bandwidth / 2.0f) * (_bandwidth / 2.0f);
                 bs412_counter++;
             }
         }
