@@ -66,6 +66,7 @@ namespace demod {
         void init(std::string name, ConfigManager* config, dsp::stream<dsp::complex_t>* input, double bandwidth, double audioSR) {
             this->name = name;
             _config = config;
+            _bandwidth = bandwidth;
 
             // Define RDS regions
             rdsRegions.define("eu", "Europe", RDS_REGION_EUROPE);
@@ -529,7 +530,22 @@ namespace demod {
                     
                     ImGui::Text("Oscilloscope - MPX");
                     if (!mpxOscilloscope.empty()) {
-                        ImGui::PlotLines("##mpx_scope", mpxOscilloscope.data(), FFT_SIZE/2, 0, NULL, -1.0f, 1.0f, timeGraphSize);
+                        ImGui::PlotLines("##mpx_scope", mpxOscilloscope.data(), mpxOscilloscope.size(), 0, NULL, -1.0f, 1.0f, timeGraphSize);
+                    }
+
+                    float value = 10.0f * (log2f(sqrt(bs412_sample_holder / bs412_counter) + 1e-6f) - log2f(19000.0f)) * 0.30103f;
+                    bs412_plot_counter++;
+                    if (bs412_plot_counter >= (bs412Plot.size() / 2)) bs412_plot_counter = 0;
+                    bs412Plot[bs412_plot_counter] = value;
+                    
+                    ImGui::Text("Plot - BS412");
+                    if (!bs412Plot.empty()) {
+                        ImGui::PlotLines("##bs412_scope", bs412Plot.data(), bs412Plot.size(), 0, NULL, -6.0f, 6.0f, timeGraphSize);
+                    }
+
+                    if(bs412_counter > (getIFSampleRate() * 60)) {
+                        bs412_sample_holder = 0.0;
+                        bs412_counter = 0;
                     }
                 } else {
                     ImGui::Text("Initializing FFT for spectrum analysis...");
@@ -539,6 +555,7 @@ namespace demod {
 
         void setBandwidth(double bandwidth) {
             demod.setDeviation(bandwidth / 2.0f);
+            _bandwidth = bandwidth;
         }
 
         void setInput(dsp::stream<dsp::complex_t>* input) {
@@ -628,6 +645,7 @@ namespace demod {
 
                 // Initialize time-domain analysis buffers
                 mpxOscilloscope.resize(FFT_SIZE/2, 0.0f);
+                bs412Plot.resize(FFT_SIZE/2, 0.0f);
                 
                 // Create Hann window
                 window.resize(FFT_SIZE);
@@ -690,6 +708,9 @@ namespace demod {
             for (int i = 0; i < displaySamples; i++) {
                 float sample = data[startIdx + i];
                 mpxOscilloscope[i] = sample;
+
+                bs412_sample_holder += sample * sample * _bandwidth * _bandwidth;
+                bs412_counter++;
             }
         }
 
@@ -747,6 +768,7 @@ namespace demod {
         std::vector<float> mpxSpectrumSmoothed; // Smoothed spectrum for noise reduction
         std::vector<float> frequencyAxis;
         std::vector<float> mpxOscilloscope;
+        std::vector<float> bs412Plot;
         std::mutex mpxDataMutex;
         
         // FFT for MPX analysis
@@ -770,8 +792,12 @@ namespace demod {
         int rdsRegionId = 0;
         RDSRegion rdsRegion = RDS_REGION_EUROPE;
 
-        OptionList<std::string, RDSRegion> rdsRegions;
+        double bs412_sample_holder = 0.0;
+        uint32_t bs412_counter = 0;
+        uint32_t bs412_plot_counter= 0;
+        float _bandwidth;
 
+        OptionList<std::string, RDSRegion> rdsRegions;
 
         std::string name;
     };
