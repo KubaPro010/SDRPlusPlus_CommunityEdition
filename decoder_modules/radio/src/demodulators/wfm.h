@@ -524,41 +524,13 @@ namespace demod {
                     }
                     ImGui::EndChild();
                     
-                    // Time-domain channel analysis
-                    ImGui::Separator();
-                    ImGui::Text("Stereo Channel Analysis");
-                    
                     // Use same width as MPX spectrum for consistency
                     ImVec2 timeGraphSize(plotSize.x * style::uiScale, 60 * style::uiScale);
                     
-                    ImGui::Text("L+R (Mono Signal)");
-                    if (!lPlusR.empty()) {
-                        ImGui::PlotLines("##mpx_mono", lPlusR.data(), 200, 0, NULL, -0.5f, 0.5f, timeGraphSize);
+                    ImGui::Text("Oscilloscope - MPX");
+                    if (!mpxOscilloscope.empty()) {
+                        ImGui::PlotLines("##mpx_scope", mpxOscilloscope.data(), FFT_SIZE/2, 0, NULL, -1.0f, 1.0f, timeGraphSize);
                     }
-                    
-                    ImGui::Text("L-R (Stereo Difference)"); 
-                    if (!lMinusR.empty()) {
-                        ImGui::PlotLines("##mpx_stereo", lMinusR.data(), 200, 0, NULL, -0.4f, 0.4f, timeGraphSize);
-                    }
-                    
-                    ImGui::Text("Left Channel");
-                    if (!leftChannel.empty()) {
-                        ImGui::PlotLines("##mpx_left", leftChannel.data(), 200, 0, NULL, -0.6f, 0.6f, timeGraphSize);
-                    }
-                    
-                    ImGui::Text("Right Channel");
-                    if (!rightChannel.empty()) {
-                        ImGui::PlotLines("##mpx_right", rightChannel.data(), 200, 0, NULL, -0.6f, 0.6f, timeGraphSize);
-                    }
-                    
-                    // Modern legend with color-coded text
-                    ImGui::Separator();
-                    ImGui::Text("MPX Component Legend:");
-                    ImGui::SameLine(); ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.4f, 1.0f), "MONO"); ImGui::SameLine(); ImGui::Text("(0-15k) |");
-                    ImGui::SameLine(); ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.5f, 1.0f), "PILOT"); ImGui::SameLine(); ImGui::Text("(19k) |");
-                    ImGui::SameLine(); ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "STEREO"); ImGui::SameLine(); ImGui::Text("(38k) |");
-                    ImGui::SameLine(); ImGui::TextColored(ImVec4(1.0f, 0.6f, 1.0f, 1.0f), "RDS"); ImGui::SameLine(); ImGui::Text("(57k) |");
-                    ImGui::SameLine(); ImGui::TextColored(ImVec4(0.6f, 0.8f, 1.0f, 1.0f), "SCA"); ImGui::SameLine(); ImGui::Text("(67k, 92k)");
                 } else {
                     ImGui::Text("Initializing FFT for spectrum analysis...");
                 }
@@ -653,12 +625,9 @@ namespace demod {
                 mpxSpectrum.resize(FFT_SIZE/2, 0.0f);
                 mpxSpectrumSmoothed.resize(FFT_SIZE/2, 0.0f);
                 frequencyAxis.resize(FFT_SIZE/2);
-                
+
                 // Initialize time-domain analysis buffers
-                lPlusR.resize(200, 0.0f);
-                lMinusR.resize(200, 0.0f);
-                leftChannel.resize(200, 0.0f);
-                rightChannel.resize(200, 0.0f);
+                mpxOscilloscope.resize(FFT_SIZE/2, 0.0f);
                 
                 // Create Hann window
                 window.resize(FFT_SIZE);
@@ -713,25 +682,14 @@ namespace demod {
                 // Store both raw and smoothed - we'll use smoothed for display
                 mpxSpectrum[i] = newValue; // Keep raw for debugging if needed
             }
-            
             // Also process time-domain analysis for channel display
-            int displaySamples = std::min(count, 200);
+            int displaySamples = std::min(count, FFT_SIZE/2);
             int startIdx = std::max(0, count - displaySamples);
             
             // Process recent samples for time-domain analysis
             for (int i = 0; i < displaySamples; i++) {
                 float sample = data[startIdx + i];
-                
-                // Simple L+R extraction (low-frequency component of MPX)
-                lPlusR[i] = sample * 0.5f; // Simplified mono component
-                
-                // Simple L-R estimation (38kHz component detection)
-                // This is a basic approximation - real implementation would need proper filtering
-                lMinusR[i] = sample * 0.2f * sinf(i * 0.1f); // Placeholder stereo difference
-                
-                // Reconstruct stereo channels
-                leftChannel[i] = lPlusR[i] + lMinusR[i];
-                rightChannel[i] = lPlusR[i] - lMinusR[i];
+                mpxOscilloscope[i] = sample;
             }
         }
 
@@ -788,10 +746,7 @@ namespace demod {
         std::vector<float> mpxSpectrum;
         std::vector<float> mpxSpectrumSmoothed; // Smoothed spectrum for noise reduction
         std::vector<float> frequencyAxis;
-        std::vector<float> lPlusR;
-        std::vector<float> lMinusR;
-        std::vector<float> leftChannel;
-        std::vector<float> rightChannel;
+        std::vector<float> mpxOscilloscope;
         std::mutex mpxDataMutex;
         
         // FFT for MPX analysis
@@ -811,8 +766,6 @@ namespace demod {
         bool _rds = false;
         bool _rdsInfo = false;
         bool _stereoAnalysis = false;
-        float muGain = 0.01;
-        float omegaGain = (0.01*0.01)/4.0;
 
         int rdsRegionId = 0;
         RDSRegion rdsRegion = RDS_REGION_EUROPE;
