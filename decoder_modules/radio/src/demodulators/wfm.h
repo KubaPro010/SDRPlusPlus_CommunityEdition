@@ -525,7 +525,7 @@ namespace demod {
                     ImGui::EndChild();
                     
                     // Use same width as MPX spectrum for consistency
-                    ImVec2 timeGraphSize(plotSize.x * style::uiScale, 60 * style::uiScale);
+                    ImVec2 timeGraphSize(plotSize.x * style::uiScale, 120 * style::uiScale);
                     
                     ImGui::Text("Oscilloscope - MPX");
                     if (!mpxOscilloscope.empty()) {
