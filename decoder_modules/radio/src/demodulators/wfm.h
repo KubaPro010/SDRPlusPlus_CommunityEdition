@@ -398,7 +398,7 @@ namespace demod {
                             {23000.0f, 53000.0f, "STEREO", IM_COL32(80, 255, 80, 15), IM_COL32(120, 255, 120, 255), true}, // 23-53 kHz L-R signal, DSB Signal
                             {55000.0f, 59000.0f, "RDS", IM_COL32(255, 120, 255, 20), IM_COL32(255, 160, 255, 255), true},  // 55-59 kHz RDS, Also DSB signal
                             {60000.0f, 74000.0f, "SCA", IM_COL32(120, 180, 255, 20), IM_COL32(160, 200, 255, 255), false}, // 65-70 kHz SCA1 - very subtle
-                            {76000.0f, 76000.0f, "PILOTx3", IM_COL32(255, 60, 60, 255), IM_COL32(255, 60, 60, 255), true},
+                            {76000.0f, 76000.0f, "PILOTx4", IM_COL32(255, 60, 60, 255), IM_COL32(255, 60, 60, 255), true},
                         };
                         
                         // Draw frequency bands first
