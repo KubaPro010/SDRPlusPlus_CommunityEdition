@@ -537,8 +537,9 @@ namespace demod {
                     bs412_plot_counter++;
                     if (bs412_plot_counter >= (bs412Plot.size() / 2)) bs412_plot_counter = 0;
                     bs412Plot[bs412_plot_counter] = value;
+                    bs412Plot[bs412_plot_counter + 1] = -6.0f;
                     
-                    ImGui::Text("Plot - BS412");
+                    ImGui::Text("Plot - BS412 (%.2f dBr)", value);
                     if (!bs412Plot.empty()) {
                         ImGui::PlotLines("##bs412_scope", bs412Plot.data(), bs412Plot.size(), 0, NULL, -6.0f, 6.0f, timeGraphSize);
                     }
