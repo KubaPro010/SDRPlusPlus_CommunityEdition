@@ -533,20 +533,21 @@ namespace demod {
                         ImGui::PlotLines("##mpx_scope", mpxOscilloscope.data(), mpxOscilloscope.size(), 0, NULL, -1.0f, 1.0f, timeGraphSize);
                     }
 
-                    float value = 10.0f * (log2f(sqrt(bs412_sample_holder / bs412_counter) + 1e-6f) - log2f(19000.0f)) * 0.30103f;
+                    float rms = sqrtf(bs412_sample_holder / bs412_counter);
+                    float value = 20.0f * log10f((rms + 1e-6f) / 19000.0f);
                     bs412_plot_counter++;
                     if (bs412_plot_counter >= (bs412Plot.size() / 2)) bs412_plot_counter = 0;
                     bs412Plot[bs412_plot_counter] = value;
                     bs412Plot[bs412_plot_counter + 1] = -6.0f;
                     
-                    ImGui::Text("Plot - BS412 (%.2f dBr)", value);
+                    ImGui::Text("Plot - BS412 (%.2f dBr, %.0f Hz)", value, rms);
                     if (!bs412Plot.empty()) {
                         ImGui::PlotLines("##bs412_scope", bs412Plot.data(), bs412Plot.size(), 0, NULL, -6.0f, 6.0f, timeGraphSize);
                     }
 
                     if(bs412_counter > (getIFSampleRate() * 60)) {
-                        bs412_sample_holder = 0.0;
-                        bs412_counter = 0;
+                        bs412_sample_holder /= bs412_counter;
+                        bs412_counter = 1;
                     }
                 } else {
                     ImGui::Text("Initializing FFT for spectrum analysis...");
